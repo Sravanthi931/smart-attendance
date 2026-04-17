@@ -10,9 +10,10 @@ import {
   serverTimestamp,
   Timestamp,
   onSnapshot,
+  doc,
 } from 'firebase/firestore';
 import { QRCodeSVG } from 'qrcode.react';
-import { Copy, Check } from 'lucide-react';
+import { Copy, Check, Users } from 'lucide-react';
 
 interface Subject {
   id: string;
@@ -82,17 +83,18 @@ export const MarkAttendance: React.FC = () => {
         const subject = subjects.find((s) => s.id === selectedSubject);
         if (!subject) return;
 
-        // Set up real-time listener for subject changes
-        const subjectRef = query(
-          collection(db, 'subjects'),
-          where('id', '==', selectedSubject)
-        );
+        // Set up real-time listener for subject document
+        const subjectDocRef = doc(db, 'subjects', selectedSubject);
 
-        const unsubscribe = onSnapshot(subjectRef, async (snapshot) => {
-          if (snapshot.empty) return;
+        const unsubscribe = onSnapshot(subjectDocRef, async (snapshot) => {
+          if (!snapshot.exists()) {
+            setStudents([]);
+            setAttendance({});
+            return;
+          }
 
-          const subjectData = snapshot.docs[0].data();
-          const studentIds = subjectData.students || [];
+          const subjectData = snapshot.data();
+          const studentIds = subjectData?.students || [];
 
           if (studentIds.length === 0) {
             setStudents([]);
@@ -104,15 +106,18 @@ export const MarkAttendance: React.FC = () => {
           const usersSnap = await getDocs(collection(db, 'users'));
           const studentsData: StudentData[] = [];
 
-          usersSnap.docs.forEach((doc) => {
-            if (studentIds.includes(doc.id)) {
+          usersSnap.docs.forEach((userDoc) => {
+            if (studentIds.includes(userDoc.id)) {
               studentsData.push({
-                uid: doc.id,
-                displayName: doc.data().displayName,
-                enrollment: doc.data().enrollmentNumber,
+                uid: userDoc.id,
+                displayName: userDoc.data().displayName,
+                enrollment: userDoc.data().enrollmentNumber,
               });
             }
           });
+
+          // Sort students by name for better UX
+          studentsData.sort((a, b) => a.displayName.localeCompare(b.displayName));
 
           setStudents(studentsData);
           const initialAttendance: { [key: string]: boolean } = {};
@@ -297,63 +302,81 @@ export const MarkAttendance: React.FC = () => {
               <div className="mb-6">
                 <div className="flex justify-between items-center mb-4">
                   <div>
-                    <h3 className="text-lg font-bold text-gray-900">
-                      Students ({students.length})
+                    <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                      <Users size={24} />
+                      Enrolled Students ({students.length})
                     </h3>
-                    <p className="text-green-600 font-semibold">
-                      Present: {presentCount}
+                    <p className="text-green-600 font-semibold mt-1">
+                      ✓ Present: {presentCount}
                     </p>
                   </div>
                   <div className="flex gap-2">
                     <button
                       onClick={handleSelectAll}
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm"
+                      disabled={students.length === 0}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium disabled:opacity-50"
                     >
                       Mark All
                     </button>
                     <button
                       onClick={handleDeselectAll}
-                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm"
+                      disabled={students.length === 0}
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm font-medium disabled:opacity-50"
                     >
                       Clear All
                     </button>
                   </div>
                 </div>
 
-                <div className="max-h-96 overflow-y-auto">
-                  <div className="space-y-2">
-                    {students.map((student) => (
-                      <label
-                        key={student.uid}
-                        className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={attendance[student.uid] || false}
-                          onChange={() => handleToggleAttendance(student.uid)}
-                          className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                        />
-                        <div>
-                          <p className="font-medium text-gray-900">
-                            {student.displayName}
-                          </p>
-                          {student.enrollment && (
-                            <p className="text-sm text-gray-600">
-                              {student.enrollment}
-                            </p>
-                          )}
-                        </div>
-                      </label>
-                    ))}
+                {students.length === 0 ? (
+                  <div className="p-8 text-center bg-blue-50 border-2 border-dashed border-blue-300 rounded-lg">
+                    <Users size={40} className="text-blue-400 mx-auto mb-3" />
+                    <p className="text-gray-600 text-lg font-medium">No students enrolled yet</p>
+                    <p className="text-gray-500 text-sm mt-2">Students will appear here once they enroll in this subject</p>
                   </div>
-                </div>
+                ) : (
+                  <div className="max-h-96 overflow-y-auto border border-gray-200 rounded-lg">
+                    <div className="space-y-2 p-2">
+                      {students.map((student) => (
+                        <label
+                          key={student.uid}
+                          className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-blue-50 cursor-pointer transition-colors"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={attendance[student.uid] || false}
+                            onChange={() => handleToggleAttendance(student.uid)}
+                            className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                          />
+                          <div className="flex-1">
+                            <p className="font-medium text-gray-900">
+                              {student.displayName}
+                            </p>
+                            {student.enrollment && (
+                              <p className="text-sm text-gray-600">
+                                ID: {student.enrollment}
+                              </p>
+                            )}
+                          </div>
+                          <div className="text-sm">
+                            {attendance[student.uid] ? (
+                              <span className="text-green-600 font-semibold">✓ Present</span>
+                            ) : (
+                              <span className="text-red-600 font-semibold">✗ Absent</span>
+                            )}
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <button
                   onClick={handleSubmit}
                   disabled={submitting || students.length === 0}
                   className="w-full mt-6 px-6 py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
                 >
-                  {submitting ? 'Submitting...' : 'Submit Attendance'}
+                  {submitting ? 'Submitting...' : `Submit Attendance (${presentCount}/${students.length})`}
                 </button>
               </div>
             )}
