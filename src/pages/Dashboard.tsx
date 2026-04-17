@@ -202,17 +202,17 @@ export const Dashboard: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <a
                 href="/attendance"
-                className="bg-blue-600 text-white p-6 rounded-lg hover:bg-blue-700 transition"
+                className="bg-gradient-to-br from-blue-600 to-cyan-600 text-white p-6 rounded-xl hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1"
               >
                 <h3 className="text-lg font-bold">📊 View Attendance</h3>
                 <p className="text-blue-100 mt-2">Check your attendance across subjects</p>
               </a>
               <a
-                href="/reports"
-                className="bg-purple-600 text-white p-6 rounded-lg hover:bg-purple-700 transition"
+                href="/ai-summary"
+                className="bg-gradient-to-br from-purple-600 to-indigo-600 text-white p-6 rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1"
               >
-                <h3 className="text-lg font-bold">📈 Download Reports</h3>
-                <p className="text-purple-100 mt-2">Generate and download attendance reports</p>
+                <h3 className="text-lg font-bold">🤖 AI Summary</h3>
+                <p className="text-purple-100 mt-2">Get AI-powered insights about your attendance</p>
               </a>
             </div>
           </div>
@@ -224,14 +224,14 @@ export const Dashboard: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <a
                 href="/mark-attendance"
-                className="bg-green-600 text-white p-6 rounded-lg hover:bg-green-700 transition"
+                className="bg-gradient-to-br from-green-600 to-emerald-600 text-white p-6 rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1"
               >
                 <h3 className="text-lg font-bold">✅ Mark Attendance</h3>
                 <p className="text-green-100 mt-2">Mark attendance for your class</p>
               </a>
               <a
                 href="/class-reports"
-                className="bg-blue-600 text-white p-6 rounded-lg hover:bg-blue-700 transition"
+                className="bg-gradient-to-br from-blue-600 to-indigo-600 text-white p-6 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1"
               >
                 <h3 className="text-lg font-bold">📊 Class Reports</h3>
                 <p className="text-blue-100 mt-2">View attendance statistics for your classes</p>
@@ -246,24 +246,24 @@ export const Dashboard: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <a
                 href="/manage-users"
-                className="bg-blue-600 text-white p-6 rounded-lg hover:bg-blue-700 transition"
+                className="bg-gradient-to-br from-blue-600 to-indigo-600 text-white p-6 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1"
               >
                 <h3 className="text-lg font-bold">👥 Manage Users</h3>
                 <p className="text-blue-100 mt-2">Add, edit, or remove users</p>
               </a>
               <a
                 href="/manage-subjects"
-                className="bg-green-600 text-white p-6 rounded-lg hover:bg-green-700 transition"
+                className="bg-gradient-to-br from-green-600 to-emerald-600 text-white p-6 rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1"
               >
                 <h3 className="text-lg font-bold">📚 Manage Subjects</h3>
                 <p className="text-green-100 mt-2">Create and manage subjects</p>
               </a>
               <a
-                href="/reports"
-                className="bg-purple-600 text-white p-6 rounded-lg hover:bg-purple-700 transition"
+                href="/system-reports"
+                className="bg-gradient-to-br from-purple-600 to-pink-600 text-white p-6 rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1"
               >
-                <h3 className="text-lg font-bold">📊 All Reports</h3>
-                <p className="text-purple-100 mt-2">View system-wide attendance reports</p>
+                <h3 className="text-lg font-bold">📊 System Reports</h3>
+                <p className="text-purple-100 mt-2">View system-wide analytics</p>
               </a>
             </div>
           </div>

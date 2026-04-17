@@ -11,6 +11,7 @@ import { AIAttendanceSummary } from './pages/AIAttendanceSummary';
 import { ClassReports } from './pages/ClassReports';
 import { ManageUsers } from './pages/ManageUsers';
 import { ManageSubjects } from './pages/ManageSubjects';
+import { SystemReports } from './pages/SystemReports';
 import './App.css';
 
 function App() {
@@ -80,6 +81,15 @@ function App() {
                 <ProtectedRoute requiredRole={['admin']}>
                   <Navbar />
                   <ManageSubjects />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/system-reports"
+              element={
+                <ProtectedRoute requiredRole={['admin']}>
+                  <Navbar />
+                  <SystemReports />
                 </ProtectedRoute>
               }
             />
