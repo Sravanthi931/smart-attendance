@@ -18,6 +18,8 @@ export interface AttendanceRecord {
   date: Date;
   isPresent: boolean;
   markedAt: Date;
+  markedDate: string; // YYYY-MM-DD format for the attendance date
+  lockedUntil?: Date; // Lock until 24 hours after marking
 }
 
 export interface ClassSession {

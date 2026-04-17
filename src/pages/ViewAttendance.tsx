@@ -7,7 +7,6 @@ import {
   where,
   getDocs,
   onSnapshot,
-  Timestamp,
 } from 'firebase/firestore';
 import {
   BarChart,
@@ -39,13 +38,9 @@ export const ViewAttendance: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [overallPercentage, setOverallPercentage] = useState(0);
 
-  // Calculate attendance for last 30 days
-  const getLast30DaysDate = () => {
-    const date = new Date();
-    date.setDate(date.getDate() - 30);
-    return Timestamp.fromDate(date);
-  };
+  const TOTAL_CLASSES = 30; // Fixed total classes per subject
 
+  // Calculate attendance for all records (no time limit)
   useEffect(() => {
     if (!currentUser) {
       setLoading(false);
@@ -73,21 +68,18 @@ export const ViewAttendance: React.FC = () => {
           return;
         }
 
-        const last30Days = getLast30DaysDate();
         const attendanceData: SubjectAttendance[] = [];
-        let totalClasses = 0;
         let totalAttended = 0;
 
         // Set up real-time listeners for each subject's attendance
         for (const subjectDoc of subjectsSnap.docs) {
           const subjectData = subjectDoc.data();
 
-          // Real-time listener for attendance records
+          // Real-time listener for attendance records - no date filter
           const attendanceQuery = query(
             collection(db, 'attendance'),
             where('classId', '==', subjectDoc.id),
-            where('studentId', '==', currentUser.uid),
-            where('date', '>=', last30Days) // Filter by last 30 days
+            where('studentId', '==', currentUser.uid)
           );
 
           // eslint-disable-next-line no-loop-func
@@ -107,16 +99,16 @@ export const ViewAttendance: React.FC = () => {
                       ...s,
                       totalClasses: totalCount,
                       classesAttended: presentCount,
-                      percentage: totalCount > 0 ? (presentCount / totalCount) * 100 : 0,
+                      percentage: TOTAL_CLASSES > 0 ? (presentCount / TOTAL_CLASSES) * 100 : 0,
                     }
                   : s
               );
 
-              // Recalculate overall percentage
-              const newTotalClasses = updated.reduce((sum, s) => sum + s.totalClasses, 0);
+              // Recalculate overall percentage based on TOTAL_CLASSES
+              const totalExpectedClasses = updated.length * TOTAL_CLASSES;
               const newTotalAttended = updated.reduce((sum, s) => sum + s.classesAttended, 0);
               setOverallPercentage(
-                newTotalClasses > 0 ? (newTotalAttended / newTotalClasses) * 100 : 0
+                totalExpectedClasses > 0 ? (newTotalAttended / totalExpectedClasses) * 100 : 0
               );
 
               return updated;
@@ -130,25 +122,24 @@ export const ViewAttendance: React.FC = () => {
           const presentCount = attendanceSnap.docs.filter(
             (d) => d.data().isPresent
           ).length;
-          const totalCount = attendanceSnap.size;
 
-          totalClasses += totalCount;
           totalAttended += presentCount;
 
           attendanceData.push({
             subjectId: subjectDoc.id,
             subjectName: subjectData.name,
             subjectCode: subjectData.code,
-            totalClasses: totalCount,
+            totalClasses: presentCount,
             classesAttended: presentCount,
-            percentage: totalCount > 0 ? (presentCount / totalCount) * 100 : 0,
+            percentage: (presentCount / TOTAL_CLASSES) * 100,
           });
         }
 
         if (isMounted) {
           setSubjectAttendance(attendanceData);
-          if (totalClasses > 0) {
-            setOverallPercentage((totalAttended / totalClasses) * 100);
+          const totalExpectedClasses = attendanceData.length * TOTAL_CLASSES;
+          if (totalExpectedClasses > 0) {
+            setOverallPercentage((totalAttended / totalExpectedClasses) * 100);
           }
           setLoading(false);
         }
@@ -211,7 +202,7 @@ export const ViewAttendance: React.FC = () => {
   const chartData = subjectAttendance.map((subject) => ({
     name: subject.subjectCode,
     attended: subject.classesAttended,
-    missed: subject.totalClasses - subject.classesAttended,
+    missed: TOTAL_CLASSES - subject.classesAttended,
   }));
 
   const pieData = [
@@ -268,9 +259,9 @@ export const ViewAttendance: React.FC = () => {
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-600">Total Classes:</span>
+                <span className="text-gray-600">Total Classes (Expected):</span>
                 <span className="text-2xl font-bold text-blue-600">
-                  {subjectAttendance.reduce((sum, s) => sum + s.totalClasses, 0)}
+                  {subjectAttendance.length * TOTAL_CLASSES}
                 </span>
               </div>
               <div className="flex justify-between items-center">
@@ -283,7 +274,7 @@ export const ViewAttendance: React.FC = () => {
                 <span className="text-gray-600">Classes Missed:</span>
                 <span className="text-2xl font-bold text-red-600">
                   {subjectAttendance.reduce(
-                    (sum, s) => sum + (s.totalClasses - s.classesAttended),
+                    (sum, s) => sum + (TOTAL_CLASSES - s.classesAttended),
                     0
                   )}
                 </span>
@@ -320,7 +311,7 @@ export const ViewAttendance: React.FC = () => {
                   Code
                 </th>
                 <th className="px-6 py-3 text-center text-sm font-bold text-white">
-                  Total Classes
+                  Max Classes
                 </th>
                 <th className="px-6 py-3 text-center text-sm font-bold text-white">
                   Attended
@@ -343,18 +334,18 @@ export const ViewAttendance: React.FC = () => {
                     {subject.subjectCode}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-900 text-center font-bold">
-                    {subject.totalClasses}
+                    {TOTAL_CLASSES}
                   </td>
                   <td className="px-6 py-4 text-sm text-center">
                     <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-full font-semibold">
                       <CheckCircle size={16} />
-                      {subject.classesAttended}
+                      {subject.classesAttended}/{TOTAL_CLASSES}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-sm text-center">
                     <span className="inline-flex items-center gap-1 px-3 py-1 bg-red-100 text-red-700 rounded-full font-semibold">
                       <XCircle size={16} />
-                      {subject.totalClasses - subject.classesAttended}
+                      {TOTAL_CLASSES - subject.classesAttended}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-center">
