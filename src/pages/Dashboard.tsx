@@ -7,8 +7,6 @@ import {
   query,
   where,
   getDocs,
-  getDoc,
-  doc,
 } from 'firebase/firestore';
 
 interface StatCard {

@@ -4,11 +4,9 @@ import { db } from '../firebase';
 import {
   collection,
   getDocs,
-  query,
-  where,
 } from 'firebase/firestore';
-import { BarChart, Bar, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
-import { Download, TrendingUp, Users, BookOpen, CheckCircle } from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { Download, Users, BookOpen, CheckCircle } from 'lucide-react';
 
 interface ReportData {
   totalUsers: number;

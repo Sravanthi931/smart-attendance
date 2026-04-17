@@ -6,8 +6,6 @@ import {
   query,
   where,
   getDocs,
-  getDoc,
-  doc,
 } from 'firebase/firestore';
 import {
   BarChart,

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { db } from '../firebase';
-import { collection, getDocs, updateDoc, deleteDoc, doc, query, where } from 'firebase/firestore';
+import { collection, getDocs, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { User } from '../types';
 import { Trash2, Edit2, Save, Users } from 'lucide-react';
 

@@ -8,6 +8,7 @@ export const Login: React.FC = () => {
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [displayName, setDisplayName] = useState('');
+  const [userRole, setUserRole] = useState<'student' | 'faculty' | 'admin'>('student');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { signInWithGoogle, signIn, signUp, currentUser } = useAuth();
@@ -31,7 +32,7 @@ export const Login: React.FC = () => {
           setLoading(false);
           return;
         }
-        await signUp(email, password, displayName);
+        await signUp(email, password, displayName, userRole);
       } else {
         await signIn(email, password);
       }
@@ -84,6 +85,26 @@ export const Login: React.FC = () => {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Your name"
               />
+            </div>
+          )}
+
+          {isSignUp && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                User Role
+              </label>
+              <select
+                value={userRole}
+                onChange={(e) => setUserRole(e.target.value as 'student' | 'faculty' | 'admin')}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="student">Student</option>
+                <option value="faculty">Faculty</option>
+                <option value="admin">Administrator</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Student: View your attendance | Faculty: Mark attendance & view reports | Admin: Manage all users and system
+              </p>
             </div>
           )}
 

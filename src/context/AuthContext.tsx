@@ -16,7 +16,7 @@ interface AuthContextType {
   currentUser: User | null;
   firebaseUser: FirebaseUser | null;
   signInWithGoogle: () => Promise<void>;
-  signUp: (email: string, password: string, displayName: string) => Promise<void>;
+  signUp: (email: string, password: string, displayName: string, role?: 'student' | 'faculty' | 'admin') => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   loading: boolean;
@@ -67,7 +67,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signUp = async (email: string, password: string, displayName: string) => {
+  const signUp = async (email: string, password: string, displayName: string, role: 'student' | 'faculty' | 'admin' = 'student') => {
     try {
       setError(null);
       const result = await createUserWithEmailAndPassword(auth, email, password);
@@ -75,7 +75,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         uid: result.user.uid,
         email,
         displayName,
-        role: 'student',
+        role,
         createdAt: new Date(),
       };
       await setDoc(doc(db, 'users', result.user.uid), user);

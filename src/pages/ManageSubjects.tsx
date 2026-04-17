@@ -7,8 +7,6 @@ import {
   addDoc,
   deleteDoc,
   doc,
-  query,
-  where,
 } from 'firebase/firestore';
 import { Trash2, Plus, BookOpen } from 'lucide-react';
 
