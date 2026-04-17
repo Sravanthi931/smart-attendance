@@ -7,6 +7,7 @@ import {
   query,
   where,
   getDocs,
+  Timestamp,
 } from 'firebase/firestore';
 
 interface StatCard {
@@ -30,13 +31,24 @@ export const Dashboard: React.FC = () => {
   const [subjects, setSubjects] = useState<SubjectData[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Get attendance from last 30 days
+  const getLast30DaysDate = () => {
+    const date = new Date();
+    date.setDate(date.getDate() - 30);
+    return Timestamp.fromDate(date);
+  };
+
   useEffect(() => {
-    const fetchStats = async () => {
+    fetchStats();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser]);
+
+  const fetchStats = async () => {
       if (!currentUser) return;
 
       try {
         if (currentUser.role === 'student') {
-          // Fetch student attendance stats
+          // Fetch student attendance stats for last 30 days
           const subjectsQuery = query(
             collection(db, 'subjects'),
             where('students', 'array-contains', currentUser.uid)
@@ -51,12 +63,14 @@ export const Dashboard: React.FC = () => {
 
           let totalClasses = 0;
           let presentCount = 0;
+          const last30Days = getLast30DaysDate();
 
           for (const subjectDoc of subjectsSnap.docs) {
             const classesQuery = query(
               collection(db, 'attendance'),
               where('studentId', '==', currentUser.uid),
-              where('classId', '==', subjectDoc.id)
+              where('classId', '==', subjectDoc.id),
+              where('date', '>=', last30Days)
             );
             const classesSnap = await getDocs(classesQuery);
             totalClasses += classesSnap.docs.length;
@@ -73,7 +87,7 @@ export const Dashboard: React.FC = () => {
               color: 'bg-blue-100 text-blue-600',
             },
             {
-              label: 'Total Classes',
+              label: 'Total Classes (30 days)',
               value: totalClasses,
               icon: <Calendar size={24} />,
               color: 'bg-green-100 text-green-600',
@@ -188,9 +202,6 @@ export const Dashboard: React.FC = () => {
       }
     };
 
-    fetchStats();
-  }, [currentUser]);
-
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 py-12">
@@ -229,7 +240,14 @@ export const Dashboard: React.FC = () => {
         {currentUser?.role === 'student' && (
           <div className="mt-12">
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Quick Actions</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <a
+                href="/enroll-subjects"
+                className="bg-gradient-to-br from-indigo-600 to-blue-600 text-white p-6 rounded-xl hover:from-indigo-700 hover:to-blue-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+              >
+                <h3 className="text-lg font-bold">📖 Enroll in Subjects</h3>
+                <p className="text-indigo-100 mt-2">Browse and enroll in available subjects</p>
+              </a>
               <a
                 href="/attendance"
                 className="bg-gradient-to-br from-blue-600 to-cyan-600 text-white p-6 rounded-xl hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1"

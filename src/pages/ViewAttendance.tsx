@@ -6,6 +6,8 @@ import {
   query,
   where,
   getDocs,
+  onSnapshot,
+  Timestamp,
 } from 'firebase/firestore';
 import {
   BarChart,
@@ -36,10 +38,23 @@ export const ViewAttendance: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [overallPercentage, setOverallPercentage] = useState(0);
 
-  useEffect(() => {
-    const fetchAttendance = async () => {
-      if (!currentUser) return;
+  // Calculate attendance for last 30 days
+  const getLast30DaysDate = () => {
+    const date = new Date();
+    date.setDate(date.getDate() - 30);
+    return Timestamp.fromDate(date);
+  };
 
+  useEffect(() => {
+    if (!currentUser) {
+      setLoading(false);
+      return;
+    }
+
+    let isMounted = true;
+    const unsubscribers: (() => void)[] = [];
+
+    const fetchAttendance = async () => {
       try {
         // Get all subjects where student is enrolled
         const subjectsQuery = query(
@@ -48,21 +63,69 @@ export const ViewAttendance: React.FC = () => {
         );
         const subjectsSnap = await getDocs(subjectsQuery);
 
+        if (subjectsSnap.empty) {
+          if (isMounted) {
+            setSubjectAttendance([]);
+            setOverallPercentage(0);
+            setLoading(false);
+          }
+          return;
+        }
+
+        const last30Days = getLast30DaysDate();
         const attendanceData: SubjectAttendance[] = [];
         let totalClasses = 0;
         let totalAttended = 0;
 
+        // Set up real-time listeners for each subject's attendance
         for (const subjectDoc of subjectsSnap.docs) {
           const subjectData = subjectDoc.data();
 
-          // Get attendance records for this subject
+          // Real-time listener for attendance records
           const attendanceQuery = query(
             collection(db, 'attendance'),
             where('classId', '==', subjectDoc.id),
-            where('studentId', '==', currentUser.uid)
+            where('studentId', '==', currentUser.uid),
+            where('date', '>=', last30Days) // Filter by last 30 days
           );
-          const attendanceSnap = await getDocs(attendanceQuery);
 
+          // eslint-disable-next-line no-loop-func
+          const unsubscribe = onSnapshot(attendanceQuery, (attendanceSnap) => {
+            if (!isMounted) return;
+
+            const presentCount = attendanceSnap.docs.filter(
+              (d) => d.data().isPresent
+            ).length;
+            const totalCount = attendanceSnap.size;
+
+            // Update the specific subject's attendance data
+            setSubjectAttendance((prev) => {
+              const updated = prev.map((s) =>
+                s.subjectId === subjectDoc.id
+                  ? {
+                      ...s,
+                      totalClasses: totalCount,
+                      classesAttended: presentCount,
+                      percentage: totalCount > 0 ? (presentCount / totalCount) * 100 : 0,
+                    }
+                  : s
+              );
+
+              // Recalculate overall percentage
+              const newTotalClasses = updated.reduce((sum, s) => sum + s.totalClasses, 0);
+              const newTotalAttended = updated.reduce((sum, s) => sum + s.classesAttended, 0);
+              setOverallPercentage(
+                newTotalClasses > 0 ? (newTotalAttended / newTotalClasses) * 100 : 0
+              );
+
+              return updated;
+            });
+          });
+
+          unsubscribers.push(unsubscribe);
+
+          // Get initial data
+          const attendanceSnap = await getDocs(attendanceQuery);
           const presentCount = attendanceSnap.docs.filter(
             (d) => d.data().isPresent
           ).length;
@@ -81,18 +144,27 @@ export const ViewAttendance: React.FC = () => {
           });
         }
 
-        setSubjectAttendance(attendanceData);
-        if (totalClasses > 0) {
-          setOverallPercentage((totalAttended / totalClasses) * 100);
+        if (isMounted) {
+          setSubjectAttendance(attendanceData);
+          if (totalClasses > 0) {
+            setOverallPercentage((totalAttended / totalClasses) * 100);
+          }
+          setLoading(false);
         }
       } catch (error) {
         console.error('Error fetching attendance:', error);
-      } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchAttendance();
+
+    return () => {
+      isMounted = false;
+      unsubscribers.forEach((unsub) => unsub());
+    };
   }, [currentUser]);
 
   if (loading) {
@@ -113,14 +185,22 @@ export const ViewAttendance: React.FC = () => {
             <h2 className="text-2xl font-bold text-gray-900 mb-3">No Subjects Enrolled</h2>
             <p className="text-gray-600 mb-4">You are not enrolled in any subjects yet.</p>
             <p className="text-gray-600 mb-6">
-              Contact your Administrator to enroll you in subjects.
+              Go to "Enroll Subjects" to enroll in available subjects and start tracking your attendance.
             </p>
-            <a
-              href="/dashboard"
-              className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-            >
-              Back to Dashboard
-            </a>
+            <div className="flex gap-4 justify-center">
+              <a
+                href="/enroll-subjects"
+                className="inline-block px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold"
+              >
+                Enroll in Subjects
+              </a>
+              <a
+                href="/dashboard"
+                className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold"
+              >
+                Back to Dashboard
+              </a>
+            </div>
           </div>
         </div>
       </div>

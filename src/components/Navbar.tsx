@@ -33,6 +33,7 @@ export const Navbar: React.FC = () => {
     const links = [];
 
     if (currentUser.role === 'student') {
+      links.push({ label: 'Enroll Subjects', href: '/enroll-subjects' });
       links.push({ label: 'Attendance', href: '/attendance' });
       links.push({ label: 'AI Summary', href: '/ai-summary' });
     } else if (currentUser.role === 'faculty') {

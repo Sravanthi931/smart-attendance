@@ -86,6 +86,15 @@ function App() {
               }
             />
             <Route
+              path="/enroll-subjects"
+              element={
+                <ProtectedRoute requiredRole={['student', 'admin']}>
+                  <Navbar />
+                  <EnrollSubjects />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/system-reports"
               element={
                 <ProtectedRoute requiredRole={['admin']}>

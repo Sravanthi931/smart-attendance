@@ -9,6 +9,7 @@ import {
   addDoc,
   serverTimestamp,
   Timestamp,
+  onSnapshot,
 } from 'firebase/firestore';
 import { QRCodeSVG } from 'qrcode.react';
 import { Copy, Check } from 'lucide-react';
@@ -37,81 +38,110 @@ export const MarkAttendance: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const [qrCode, setQrCode] = useState<string>('');
 
+  // Fetch subjects and set up real-time listener
   useEffect(() => {
-    const fetchSubjects = async () => {
-      if (!currentUser) return;
+    if (!currentUser) {
+      setLoading(false);
+      return;
+    }
 
-      try {
-        const subjectsQuery = query(
-          collection(db, 'subjects'),
-          where('facultyId', '==', currentUser.uid)
-        );
-        const subjectsSnap = await getDocs(subjectsQuery);
-        const subjectsData = subjectsSnap.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Subject[];
-        setSubjects(subjectsData);
-        if (subjectsData.length > 0) {
-          setSelectedSubject(subjectsData[0].id);
-        }
-      } catch (error) {
-        console.error('Error fetching subjects:', error);
-      } finally {
-        setLoading(false);
+    const subjectsQuery = query(
+      collection(db, 'subjects'),
+      where('facultyId', '==', currentUser.uid)
+    );
+
+    const unsubscribe = onSnapshot(subjectsQuery, (snapshot) => {
+      const subjectsData = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Subject[];
+      setSubjects(subjectsData);
+      if (subjectsData.length > 0 && !selectedSubject) {
+        setSelectedSubject(subjectsData[0].id);
       }
-    };
+      setLoading(false);
+    });
 
-    fetchSubjects();
-  }, [currentUser]);
+    return () => unsubscribe();
+  }, [currentUser, selectedSubject]);
 
+  // Fetch and listen to students for selected subject
   useEffect(() => {
-    const fetchStudents = async () => {
-      if (!selectedSubject) return;
+    if (!selectedSubject || subjects.length === 0) {
+      setStudents([]);
+      setAttendance({});
+      return;
+    }
 
+    fetchStudents();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSubject, subjects]);
+
+  const fetchStudents = async () => {
       try {
         const subject = subjects.find((s) => s.id === selectedSubject);
         if (!subject) return;
 
-        const usersRef = collection(db, 'users');
-        const studentDocs = await Promise.all(
-          subject.students.map((studentId) =>
-            getDocs(query(usersRef, where('uid', '==', studentId)))
-          )
+        // Set up real-time listener for subject changes
+        const subjectRef = query(
+          collection(db, 'subjects'),
+          where('id', '==', selectedSubject)
         );
 
-        const studentsData: StudentData[] = [];
-        studentDocs.forEach((snap) => {
-          snap.docs.forEach((doc) => {
-            studentsData.push({
-              uid: doc.id,
-              displayName: doc.data().displayName,
-              enrollment: doc.data().enrollmentNumber,
-            });
+        const unsubscribe = onSnapshot(subjectRef, async (snapshot) => {
+          if (snapshot.empty) return;
+
+          const subjectData = snapshot.docs[0].data();
+          const studentIds = subjectData.students || [];
+
+          if (studentIds.length === 0) {
+            setStudents([]);
+            setAttendance({});
+            return;
+          }
+
+          // Fetch student details
+          const usersSnap = await getDocs(collection(db, 'users'));
+          const studentsData: StudentData[] = [];
+
+          usersSnap.docs.forEach((doc) => {
+            if (studentIds.includes(doc.id)) {
+              studentsData.push({
+                uid: doc.id,
+                displayName: doc.data().displayName,
+                enrollment: doc.data().enrollmentNumber,
+              });
+            }
           });
+
+          setStudents(studentsData);
+          const initialAttendance: { [key: string]: boolean } = {};
+          studentsData.forEach((s) => {
+            initialAttendance[s.uid] = false;
+          });
+          setAttendance(initialAttendance);
         });
 
-        setStudents(studentsData);
-        const initialAttendance: { [key: string]: boolean } = {};
-        studentsData.forEach((s) => {
-          initialAttendance[s.uid] = false;
-        });
-        setAttendance(initialAttendance);
-
-        // Generate QR code
-        const qrData = JSON.stringify({
-          classId: selectedSubject,
-          timestamp: new Date().toISOString(),
-          facultyId: currentUser?.uid,
-        });
-        setQrCode(qrData);
+        return () => unsubscribe();
       } catch (error) {
         console.error('Error fetching students:', error);
       }
     };
 
-    fetchStudents();
-  }, [selectedSubject, subjects, currentUser]);
+  // Generate QR code when subject changes
+  useEffect(() => {
+    if (!selectedSubject || !currentUser) {
+      setQrCode('');
+      return;
+    }
+
+    const qrData = JSON.stringify({
+      classId: selectedSubject,
+      timestamp: new Date().toISOString(),
+      facultyId: currentUser.uid,
+    });
+    setQrCode(qrData);
+  }, [selectedSubject, currentUser]);
 
   const handleToggleAttendance = (studentId: string) => {
     setAttendance((prev) => ({
