@@ -1,0 +1,58 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users collection - authenticated users can read their own data
+    match /users/{userId} {
+      allow read: if request.auth.uid == userId || request.auth.uid != null;
+      allow write: if request.auth.uid == userId && hasValidRole(request.resource.data);
+      allow delete: if request.auth.uid == userId || isAdmin();
+    }
+
+    // Subjects collection - public read, faculty/admin write
+    match /subjects/{subjectId} {
+      allow read: if request.auth.uid != null;
+      allow create, update: if isFacultyOrAdmin() && request.auth.uid == request.resource.data.facultyId;
+      allow delete: if isAdmin();
+    }
+
+    // Attendance collection - secure read/write
+    match /attendance/{attendanceId} {
+      allow read: if request.auth.uid != null && (
+        request.auth.uid == resource.data.studentId ||
+        isTeachingStudent(resource.data.classId, request.auth.uid) ||
+        isAdmin()
+      );
+      allow create, update: if isFacultyOrAdmin() && request.auth.uid == request.resource.data.facultyId;
+      allow delete: if isAdmin();
+    }
+
+    // Classes collection
+    match /classes/{classId} {
+      allow read: if request.auth.uid != null;
+      allow create, update: if isFacultyOrAdmin() && request.auth.uid == request.resource.data.facultyId;
+      allow delete: if isAdmin();
+    }
+
+    // Helper functions
+    function isAdmin() {
+      return getUserRole() == 'admin';
+    }
+
+    function isFacultyOrAdmin() {
+      return getUserRole() in ['faculty', 'admin'];
+    }
+
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function hasValidRole(user) {
+      return user.role in ['student', 'faculty', 'admin'];
+    }
+
+    function isTeachingStudent(classId, userId) {
+      let subject = get(/databases/$(database)/documents/subjects/$(classId)).data;
+      return subject.facultyId == userId;
+    }
+  }
+}
