@@ -12,6 +12,7 @@ import { ClassReports } from './pages/ClassReports';
 import { ManageUsers } from './pages/ManageUsers';
 import { ManageSubjects } from './pages/ManageSubjects';
 import { SystemReports } from './pages/SystemReports';
+import { EnrollSubjects } from './pages/EnrollSubjects';
 import './App.css';
 
 function App() {
