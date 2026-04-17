@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Mail } from 'lucide-react';
 
 export const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -11,7 +10,7 @@ export const Login: React.FC = () => {
   const [userRole, setUserRole] = useState<'student' | 'faculty' | 'admin'>('student');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signInWithGoogle, signIn, signUp, currentUser } = useAuth();
+  const { signIn, signUp, currentUser } = useAuth();
   const navigate = useNavigate();
 
   React.useEffect(() => {
@@ -44,19 +43,6 @@ export const Login: React.FC = () => {
     }
   };
 
-  const handleGoogleSignIn = async () => {
-    setError('');
-    setLoading(true);
-
-    try {
-      await signInWithGoogle();
-      navigate('/dashboard');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Google sign in failed');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
@@ -142,21 +128,6 @@ export const Login: React.FC = () => {
             {loading ? 'Loading...' : isSignUp ? 'Sign Up' : 'Sign In'}
           </button>
         </form>
-
-        <div className="my-6 flex items-center">
-          <div className="flex-1 border-t border-gray-300"></div>
-          <span className="px-3 text-gray-500 text-sm">OR</span>
-          <div className="flex-1 border-t border-gray-300"></div>
-        </div>
-
-        <button
-          onClick={handleGoogleSignIn}
-          disabled={loading}
-          className="w-full flex items-center justify-center gap-2 py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition"
-        >
-          <Mail size={20} />
-          <span>Sign in with Google</span>
-        </button>
 
         <div className="mt-6 text-center">
           <p className="text-gray-600 text-sm">

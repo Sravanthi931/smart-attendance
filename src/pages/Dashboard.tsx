@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { BarChart3, Users, Calendar, TrendingUp } from 'lucide-react';
+import { BarChart3, Users, Calendar, TrendingUp, Book } from 'lucide-react';
 import { db } from '../firebase';
 import {
   collection,
@@ -16,9 +16,18 @@ interface StatCard {
   color: string;
 }
 
+interface SubjectData {
+  id: string;
+  name: string;
+  code: string;
+  students?: string[];
+  facultyId?: string;
+}
+
 export const Dashboard: React.FC = () => {
   const { currentUser } = useAuth();
   const [stats, setStats] = useState<StatCard[]>([]);
+  const [subjects, setSubjects] = useState<SubjectData[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -33,6 +42,12 @@ export const Dashboard: React.FC = () => {
             where('students', 'array-contains', currentUser.uid)
           );
           const subjectsSnap = await getDocs(subjectsQuery);
+          setSubjects(subjectsSnap.docs.map(doc => ({
+            id: doc.id,
+            name: doc.data().name,
+            code: doc.data().code,
+            students: doc.data().students,
+          })));
 
           let totalClasses = 0;
           let presentCount = 0;
@@ -86,6 +101,13 @@ export const Dashboard: React.FC = () => {
             where('facultyId', '==', currentUser.uid)
           );
           const subjectsSnap = await getDocs(subjectsQuery);
+          setSubjects(subjectsSnap.docs.map(doc => ({
+            id: doc.id,
+            name: doc.data().name,
+            code: doc.data().code,
+            students: doc.data().students,
+            facultyId: doc.data().facultyId,
+          })));
 
           const classesQuery = query(
             collection(db, 'classes'),
@@ -117,7 +139,17 @@ export const Dashboard: React.FC = () => {
             },
           ]);
         } else if (currentUser.role === 'admin') {
-          // Fetch admin stats
+          // Fetch admin stats - all subjects
+          const subjectsQuery = collection(db, 'subjects');
+          const subjectsSnap = await getDocs(subjectsQuery);
+          setSubjects(subjectsSnap.docs.map(doc => ({
+            id: doc.id,
+            name: doc.data().name,
+            code: doc.data().code,
+            students: doc.data().students,
+            facultyId: doc.data().facultyId,
+          })));
+
           const usersQuery = collection(db, 'users');
           const usersSnap = await getDocs(usersQuery);
 
@@ -263,6 +295,64 @@ export const Dashboard: React.FC = () => {
                 <h3 className="text-lg font-bold">📊 System Reports</h3>
                 <p className="text-purple-100 mt-2">View system-wide analytics</p>
               </a>
+            </div>
+          </div>
+        )}
+
+        {/* Subjects Section */}
+        {subjects.length > 0 && (
+          <div className="mt-12">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">
+              {currentUser?.role === 'student' && '📚 Your Enrolled Subjects'}
+              {currentUser?.role === 'faculty' && '📚 Subjects You Teach'}
+              {currentUser?.role === 'admin' && '📚 All Subjects in System'}
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {subjects.map((subject) => (
+                <div
+                  key={subject.id}
+                  className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow p-6 border-l-4 border-blue-600"
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900">{subject.name}</h3>
+                      <p className="text-sm text-gray-600">Code: {subject.code}</p>
+                    </div>
+                    <Book size={28} className="text-blue-600 opacity-70" />
+                  </div>
+                  <hr className="my-4" />
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600 text-sm">Students Enrolled:</span>
+                      <span className="font-bold text-blue-600">{subject.students?.length || 0}</span>
+                    </div>
+                    {currentUser?.role === 'student' && (
+                      <a
+                        href="/attendance"
+                        className="block mt-4 text-center px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition text-sm font-medium"
+                      >
+                        View Attendance →
+                      </a>
+                    )}
+                    {currentUser?.role === 'faculty' && (
+                      <a
+                        href="/mark-attendance"
+                        className="block mt-4 text-center px-4 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition text-sm font-medium"
+                      >
+                        Mark Attendance →
+                      </a>
+                    )}
+                    {currentUser?.role === 'admin' && (
+                      <a
+                        href="/manage-subjects"
+                        className="block mt-4 text-center px-4 py-2 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 transition text-sm font-medium"
+                      >
+                        Manage Subject →
+                      </a>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
