@@ -103,6 +103,30 @@ export const ViewAttendance: React.FC = () => {
     );
   }
 
+  if (subjectAttendance.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+        <div className="max-w-6xl mx-auto">
+          <h1 className="text-3xl font-bold text-gray-900 mb-8">Your Attendance</h1>
+          <div className="bg-white rounded-lg shadow p-8 text-center">
+            <div className="text-6xl mb-4">📚</div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-3">No Subjects Enrolled</h2>
+            <p className="text-gray-600 mb-4">You are not enrolled in any subjects yet.</p>
+            <p className="text-gray-600 mb-6">
+              Contact your Administrator to enroll you in subjects.
+            </p>
+            <a
+              href="/dashboard"
+              className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            >
+              Back to Dashboard
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const chartData = subjectAttendance.map((subject) => ({
     name: subject.subjectCode,
     attended: subject.classesAttended,

@@ -184,6 +184,30 @@ export const MarkAttendance: React.FC = () => {
   const selectedSubjectData = subjects.find((s) => s.id === selectedSubject);
   const presentCount = Object.values(attendance).filter(Boolean).length;
 
+  if (subjects.length === 0 && !loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+        <div className="max-w-6xl mx-auto">
+          <h1 className="text-3xl font-bold text-gray-900 mb-8">Mark Attendance</h1>
+          <div className="bg-white rounded-lg shadow p-8 text-center">
+            <div className="text-6xl mb-4">📚</div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-3">No Subjects Assigned</h2>
+            <p className="text-gray-600 mb-4">You don't have any subjects assigned yet.</p>
+            <p className="text-gray-600 mb-6">
+              Contact your Administrator to create subjects and assign you as the faculty member.
+            </p>
+            <a
+              href="/dashboard"
+              className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            >
+              Back to Dashboard
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
