@@ -17,9 +17,6 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
 } from 'recharts';
 import { CheckCircle, XCircle } from 'lucide-react';
 
@@ -36,7 +33,6 @@ export const ViewAttendance: React.FC = () => {
   const { currentUser } = useAuth();
   const [subjectAttendance, setSubjectAttendance] = useState<SubjectAttendance[]>([]);
   const [loading, setLoading] = useState(true);
-  const [overallPercentage, setOverallPercentage] = useState(0);
 
   const TOTAL_CLASSES = 30; // Fixed total classes per subject
 
@@ -62,14 +58,12 @@ export const ViewAttendance: React.FC = () => {
         if (subjectsSnap.empty) {
           if (isMounted) {
             setSubjectAttendance([]);
-            setOverallPercentage(0);
             setLoading(false);
           }
           return;
         }
 
         const attendanceData: SubjectAttendance[] = [];
-        let totalAttended = 0;
 
         // Set up real-time listeners for each subject's attendance
         for (const subjectDoc of subjectsSnap.docs) {
@@ -104,13 +98,6 @@ export const ViewAttendance: React.FC = () => {
                   : s
               );
 
-              // Recalculate overall percentage based on TOTAL_CLASSES
-              const totalExpectedClasses = updated.length * TOTAL_CLASSES;
-              const newTotalAttended = updated.reduce((sum, s) => sum + s.classesAttended, 0);
-              setOverallPercentage(
-                totalExpectedClasses > 0 ? (newTotalAttended / totalExpectedClasses) * 100 : 0
-              );
-
               return updated;
             });
           });
@@ -122,8 +109,6 @@ export const ViewAttendance: React.FC = () => {
           const presentCount = attendanceSnap.docs.filter(
             (d) => d.data().isPresent
           ).length;
-
-          totalAttended += presentCount;
 
           attendanceData.push({
             subjectId: subjectDoc.id,
@@ -137,10 +122,6 @@ export const ViewAttendance: React.FC = () => {
 
         if (isMounted) {
           setSubjectAttendance(attendanceData);
-          const totalExpectedClasses = attendanceData.length * TOTAL_CLASSES;
-          if (totalExpectedClasses > 0) {
-            setOverallPercentage((totalAttended / totalExpectedClasses) * 100);
-          }
           setLoading(false);
         }
       } catch (error) {
@@ -205,50 +186,13 @@ export const ViewAttendance: React.FC = () => {
     missed: TOTAL_CLASSES - subject.classesAttended,
   }));
 
-  const pieData = [
-    { name: 'Present', value: Math.round(overallPercentage) },
-    { name: 'Absent', value: 100 - Math.round(overallPercentage) },
-  ];
-
-  const COLORS = ['#10b981', '#ef4444'];
-
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">Your Attendance</h1>
 
-        {/* Overall Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Overall Stats</h2>
-            <div className="flex items-center justify-center h-48">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={pieData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={100}
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    {pieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="text-center">
-              <p className="text-4xl font-bold text-green-600">
-                {overallPercentage.toFixed(1)}%
-              </p>
-              <p className="text-gray-600 mt-2">Overall Attendance</p>
-            </div>
-          </div>
-
+        {/* Summary Section */}
+        <div className="mb-8">
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-6">Summary</h2>
             <div className="space-y-4">
